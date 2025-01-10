@@ -1,0 +1,73 @@
+import base64
+import os
+from pdf2image import convert_from_path
+
+# Prompt for extracting information
+IMAGE_TO_TEXT_PROMPT = """
+You are provided a mechanical or electric component's specification details.
+Our objective is to extract all the key attributes from this image.
+Your task is to extract as much information as possible, ensuring every detail is captured accurately.
+"""
+
+# Function to encode an image to Base64
+def encode_image(image_path):
+    try:
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode("utf-8")
+    except Exception as e:
+        print(f"Error encoding image: {e}")
+        return None
+
+# Function to convert a PDF to images
+def convert_pdf_to_images(pdf_path, output_dir):
+    try:
+        images = convert_from_path(pdf_path)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        image_paths = []
+        for i, image in enumerate(images):
+            image_path = os.path.join(output_dir, f"page_{i + 1}.jpg")
+            image.save(image_path, "JPEG")
+            image_paths.append(image_path)
+
+        return image_paths
+    except Exception as e:
+        print(f"Error converting PDF to images: {e}")
+        return []
+
+# Function to extract text from an image using LLM
+def image_to_text(image_base64):
+    try:
+        # Prepare the LLM request payload
+        messages = [
+            {
+                "role": "user",
+                "content": IMAGE_TO_TEXT_PROMPT,
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}
+            }
+        ]
+        # Simulate LLM invocation (replace `invoke` with actual LLM API call)
+        output = invoke(messages)
+        return output
+    except Exception as e:
+        print(f"Error invoking LLM: {e}")
+        return "NOT able to run LLM"
+
+# Example usage
+if __name__ == "__main__":
+    pdf_path = "example.pdf"
+    output_dir = "output_images"
+
+    # Convert PDF to images
+    image_paths = convert_pdf_to_images(pdf_path, output_dir)
+
+    for image_path in image_paths:
+        # Encode image to Base64
+        image_base64 = encode_image(image_path)
+
+        if image_base64:
+            # Extract text using LLM
+            extracted_text = image_to_text(image_base64)
+            print(f"Extracted Text from {image_path}:\n{extracted_text}")
